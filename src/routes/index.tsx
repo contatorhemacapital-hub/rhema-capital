@@ -1,24 +1,32 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Rhema Capital — Gestão patrimonial" },
+      { name: "description", content: "Sistema pessoal de gestão financeira e patrimonial Rhema Capital." },
+      { property: "og:title", content: "Rhema Capital — Gestão patrimonial" },
+      { property: "og:description", content: "Sistema pessoal de gestão financeira e patrimonial Rhema Capital." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-sidebar px-6 text-center text-sidebar-foreground">
+      <div className="gold-rule mb-6" aria-hidden />
+      <p className="text-xs uppercase tracking-[0.3em] text-gold">Rhema Capital</p>
+      <h1 className="mt-4 max-w-xl text-5xl font-semibold leading-tight sm:text-6xl">
+        Gestão financeira e patrimonial
+      </h1>
+      <p className="mt-4 max-w-md text-sm opacity-80">Ambiente privado de uso exclusivo do proprietário.</p>
+      <Button asChild size="lg" className="mt-10 bg-gold text-gold-foreground hover:bg-gold/90">
+        <Link to="/auth">Acessar</Link>
+      </Button>
+    </main>
   );
 }
