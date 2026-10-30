@@ -17,6 +17,7 @@ import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedConsorciosRouteImport } from './routes/_authenticated/consorcios'
 import { Route as AuthenticatedContasRouteImport } from './routes/_authenticated/contas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedImportacaoRouteImport } from './routes/_authenticated/importacao'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
 import { Route as AuthenticatedPatrimonioRouteImport } from './routes/_authenticated/patrimonio'
 import { Route as AuthenticatedPlanejamentoRouteImport } from './routes/_authenticated/planejamento'
@@ -61,6 +62,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedImportacaoRoute = AuthenticatedImportacaoRouteImport.update({
+  id: '/importacao',
+  path: '/importacao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMovimentacoesRoute =
   AuthenticatedMovimentacoesRouteImport.update({
     id: '/movimentacoes',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/consorcios': typeof AuthenticatedConsorciosRoute
   '/contas': typeof AuthenticatedContasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/importacao': typeof AuthenticatedImportacaoRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/patrimonio': typeof AuthenticatedPatrimonioRoute
   '/planejamento': typeof AuthenticatedPlanejamentoRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/consorcios': typeof AuthenticatedConsorciosRoute
   '/contas': typeof AuthenticatedContasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/importacao': typeof AuthenticatedImportacaoRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/patrimonio': typeof AuthenticatedPatrimonioRoute
   '/planejamento': typeof AuthenticatedPlanejamentoRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/_authenticated/consorcios': typeof AuthenticatedConsorciosRoute
   '/_authenticated/contas': typeof AuthenticatedContasRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/importacao': typeof AuthenticatedImportacaoRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/_authenticated/patrimonio': typeof AuthenticatedPatrimonioRoute
   '/_authenticated/planejamento': typeof AuthenticatedPlanejamentoRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/consorcios'
     | '/contas'
     | '/dashboard'
+    | '/importacao'
     | '/movimentacoes'
     | '/patrimonio'
     | '/planejamento'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/consorcios'
     | '/contas'
     | '/dashboard'
+    | '/importacao'
     | '/movimentacoes'
     | '/patrimonio'
     | '/planejamento'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/_authenticated/consorcios'
     | '/_authenticated/contas'
     | '/_authenticated/dashboard'
+    | '/_authenticated/importacao'
     | '/_authenticated/movimentacoes'
     | '/_authenticated/patrimonio'
     | '/_authenticated/planejamento'
@@ -222,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/importacao': {
+      id: '/_authenticated/importacao'
+      path: '/importacao'
+      fullPath: '/importacao'
+      preLoaderRoute: typeof AuthenticatedImportacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/movimentacoes': {
       id: '/_authenticated/movimentacoes'
       path: '/movimentacoes'
@@ -251,6 +270,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConsorciosRoute: typeof AuthenticatedConsorciosRoute
   AuthenticatedContasRoute: typeof AuthenticatedContasRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedImportacaoRoute: typeof AuthenticatedImportacaoRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
   AuthenticatedPatrimonioRoute: typeof AuthenticatedPatrimonioRoute
   AuthenticatedPlanejamentoRoute: typeof AuthenticatedPlanejamentoRoute
@@ -261,6 +281,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConsorciosRoute: AuthenticatedConsorciosRoute,
   AuthenticatedContasRoute: AuthenticatedContasRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedImportacaoRoute: AuthenticatedImportacaoRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
   AuthenticatedPatrimonioRoute: AuthenticatedPatrimonioRoute,
   AuthenticatedPlanejamentoRoute: AuthenticatedPlanejamentoRoute,
