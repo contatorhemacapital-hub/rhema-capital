@@ -1,57 +1,40 @@
-# Rhema Capital — Plano técnico do MVP (fundação)
+# Rhema Capital — Etapa 1: administrador e área de clientes
 
-## Objetivo
-Fundação de um sistema pessoal (um único proprietário) de gestão financeira e patrimonial: identidade visual, navegação, autenticação, banco protegido e esqueleto dos módulos com estados de carregamento, vazio e erro. Sem dados fictícios, sem módulos financeiros completos, sem Open Finance, portal de clientes ou equipe.
+## Resultado
+Evoluir o sistema para vários clientes sem perder dados, preservando o login atual e a identidade visual. Leonardo passa a administrador/consultor, com acesso a todos os clientes. Cada cliente acessa exclusivamente seus próprios dados, com visualização ou edição conforme autorização.
 
-## Identidade visual
-- Paleta: marinho #0B1F3A (barra lateral, títulos), azul profundo #12304F (superfícies escuras, botão principal), champagne #C9A961 (só detalhes: item ativo do menu, filetes, foco), off-white #F5F1E8 (fundo).
-- Tipografia: Cormorant Garamond (títulos, tom de consultoria patrimonial) + Manrope (texto e números, com algarismos tabulares).
-- Tudo definido como tokens de design (oklch) num só lugar; nenhuma cor solta nos componentes.
-- Interface em português (pt-BR), moeda BRL, datas dd/mm/aaaa.
+## Cadastros e navegação
+- Criar “Leonardo (pessoal)” e transferir para ele todos os dados atuais; será a seleção inicial do administrador.
+- Criar “Cliente Teste”, sem e-mail ou CPF. Não conceder acesso a uma conta arbitrária: o vínculo de edição será feito quando o administrador identificar o usuário.
+- Página Clientes, exclusiva do administrador: busca, botão Novo cliente, cadastro e página de detalhe com edição e gestão de acesso.
+- Campos: nome, e-mail, CPF, telefone, observações e situação; contatos opcionais. Situações iniciais: ativo/inativo.
+- Adicionar Importação e Clientes ao menu; Categorias somente se houver página própria. Hoje as categorias ficam em Configurações, sem rota independente.
+- Seletor no topo para o administrador; clientes ficam limitados ao seu cadastro. Todas as telas financeiras passam a usar a seleção, incluindo saldos, categorias, previstos, importação e conciliação.
+- Permissão de visualização também refletida nas ações da interface, sem substituir as verificações de segurança.
 
-## Navegação
-Menu lateral recolhível (vira gaveta no celular): Dashboard, Movimentações, Contas, Patrimônio, Consórcios, Planejamento, Configurações. Cabeçalho com nome do módulo e menu da conta (sair).
-Cada módulo nesta fase mostra cabeçalho + estado vazio honesto ("Nenhuma conta cadastrada ainda"), sem números inventados. O Dashboard mostra cartões vazios ("—") até existirem dados.
+## Preservação e segurança
+- Converter o dono atual em administrador sem permitir que usuários comuns se promovam pelo login.
+- Administrador lê e grava dados de qualquer cliente. Usuário client só lê o cliente vinculado e só grava com acesso edit.
+- Manter restrições financeiras existentes, como cancelamento/arquivamento em vez de exclusões destrutivas.
+- Impedir vínculos cruzados: conta, categoria, transferência, previsto e importação precisam pertencer ao mesmo cliente.
+- Não criar perfis de usuário ou novos métodos de login; não abrir cadastro público nesta etapa.
 
-## Arquitetura
-- TanStack Start (React) com rotas por arquivo; páginas privadas dentro de uma área protegida que exige sessão.
-- Lovable Cloud como backend: banco Postgres, autenticação e políticas de acesso no banco (RLS).
-- Leituras/escritas via funções de servidor autenticadas, que validam o token do usuário e operam com as permissões dele (RLS sempre ativa). Chave privilegiada nunca no navegador; não será usada nesta fase.
-- Estrutura modular: `src/features/<modulo>/` (consultas, componentes, tipos) + `src/components/` compartilhados (PageHeader, EmptyState, ErrorState, LoadingSkeleton, StatCard, Money).
+## Detalhes técnicos
+- Criar `user_roles` separado, `clients` e `client_access`, com GRANTs explícitos e RLS. `client_access.user_id` único; acesso view/edit.
+- Criar helpers de autorização com `SECURITY DEFINER`, `search_path` fixo e permissões restritas; adaptar `is_owner()` e `claim_ownership()` preservando compatibilidade e impedindo novos claims de administrador.
+- Adicionar `client_id` e índice às oito tabelas financeiras existentes: `financial_accounts`, `categories`, `transactions`, `recurring_items`, `recurring_adjustments`, `categorization_rules`, `csv_mappings`, `import_batches`. `app_owner` e as tabelas de acesso não são dados financeiros de cliente.
+- Fazer a mudança aditivamente: criar os cadastros necessários ao backfill, adicionar campos, preencher todos os registros existentes e somente depois tornar `client_id` obrigatório. Preservar `owner_id` como autoria, não como limite de acesso.
+- Atualizar políticas, gatilhos, view de saldos e todas as funções de banco, especialmente `commit_csv_import` e `load_default_categories`, para autorização e isolamento por cliente.
+- Toda função de servidor valida sessão e cliente solicitado, usando a conexão autenticada com RLS; nenhuma chave privilegiada no navegador.
+- Incluir cliente nas consultas e nas chaves de cache. Ao trocar seleção, cancelar consultas e limpar dados anteriores antes de carregar o novo cliente, evitando mistura de saldos e formulários.
+- Registrar decisões de arquitetura em `AGENTS.md` e atualizar o roadmap.
 
-## Autenticação (decisão para aprovar)
-- E-mail e senha, com recuperação de senha (página /reset-password).
-- Uso exclusivo do proprietário: após o proprietário criar a conta, o cadastro público é desativado. Além disso, uma tabela `app_owner` com no máximo uma linha registra o dono; as políticas do banco só liberam dados ao dono (dupla barreira: mesmo que alguém crie conta, não vê nada).
-- Sessão expira normalmente; botão "Sair" limpa dados em cache.
+## Validação
+- Testes reais de RLS: administrador lê ambos os clientes; cliente A não lê nem altera B; view não grava; edit grava apenas no próprio cliente; usuário sem vínculo não acessa dados nem altera papéis.
+- Testar rejeição de relações cruzadas e autorização das funções de importação/categorias.
+- Conferir contagens e saldos antes/depois da migração, garantindo que todos os dados atuais ficaram em Leonardo (pessoal).
+- Testar login do administrador, cadastro/detalhe, troca de cliente, criação e leitura de movimentação, importação e regressões existentes.
+- Testes de acesso de clientes exigem contas identificadas/autorizadas; não selecionar contas reais aleatoriamente.
 
-## Modelo de dados inicial (apenas o essencial)
-Todas as tabelas: `id`, `owner_id` (→ usuário, padrão = usuário logado), `created_at`, `updated_at`, valores em `numeric(18,2)`, moeda `char(3)` padrão BRL.
-- `app_owner` — usuário proprietário (linha única).
-- `profiles` — nome de exibição, preferências (moeda, idioma).
-- `accounts` — contas: nome, instituição, tipo (corrente, poupança, investimento, cartão, carteira), saldo inicial, ativa.
-- `categories` — categorias de receita/despesa (hierarquia simples via `parent_id`).
-- `transactions` — movimentações: conta, categoria, tipo (receita/despesa/transferência), valor, data, descrição.
-- `assets` — patrimônio: tipo (imóvel, veículo, investimento, participação, outro), nome, valor estimado, data de avaliação.
-- `consortia` — consórcios: administradora, grupo/cota, valor da carta, parcelas totais/pagas, situação.
-- `goals` — planejamento: nome, valor alvo, prazo.
-
-Nesta fase as telas não terão formulários completos; as tabelas existem para a expansão seguinte. (Alternativa: criar só `app_owner`, `profiles` e `accounts` agora — ver decisões.)
-
-## Segurança
-- RLS ativa em todas as tabelas; nenhum acesso para usuários anônimos (sem GRANT para `anon`).
-- Políticas: SELECT/INSERT/UPDATE/DELETE apenas quando `owner_id = auth.uid()` **e** o usuário é o dono registrado (função `is_owner()` security definer).
-- INSERT com `owner_id` forçado pelo banco (padrão `auth.uid()` + verificação na política), impedindo gravar em nome de outro.
-- Chaves estrangeiras validadas por propriedade (ex.: movimentação só pode apontar para conta do mesmo dono).
-- Funções de servidor validam o usuário a cada chamada; nenhum endpoint público com dados.
-- Validação de entrada com Zod no servidor.
-
-## Qualidade
-- Acessível: navegação por teclado, foco visível em champagne, rótulos ARIA, contraste AA.
-- Responsivo: menu em gaveta abaixo de 768px.
-- Testes pequenos para regras de formatação de moeda e do guarda de acesso.
-
-## Decisões que precisam da sua aprovação
-1. Login por e-mail e senha com cadastro fechado após a sua conta (ou prefere login com Google?).
-2. Criar já todas as tabelas listadas, ou só as básicas (dono, perfil, contas) e o resto quando cada módulo for construído?
-3. Fontes: Cormorant Garamond + Manrope está de acordo?
-4. Moeda única BRL por enquanto, com campo de moeda preparado para o futuro?
+## Fora do escopo e dependência
+PDF e grade de projeção continuam em aberto. O cadastro Cliente Teste pode ser criado agora; seu acesso de edição depende da identificação da conta que receberá o vínculo.
