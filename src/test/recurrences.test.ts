@@ -37,14 +37,14 @@ describe("ocorrências recorrentes",()=>{
     const dates=occurrences([r],[],[],"2026-01-01","2027-12-31","2026-01-01").map(x=>x.due);
     expect(dates).toHaveLength(12); expect(dates[0]).toBe("2026-02-10"); expect(dates.at(-1)).toBe("2027-01-10");
   });
-  it("usa valor vigente e critério real em reajustes",()=>{
+  it("usa o valor vigente e, no empate de data efetiva, o created_at mais recente",()=>{
     const r=makeRecurring(); const history:Adjustment[]=[
       {id:"a",recurring_id:r.id,effective_from:"2026-04-01",previous_amount:210.96,new_amount:218,created_at:"2026-03-01T00:00:00Z"},
       {id:"b",recurring_id:r.id,effective_from:"2026-04-01",previous_amount:218,new_amount:220,created_at:"2026-03-02T00:00:00Z"},
     ];
     expect(expectedAmount(r,"2026-03-10",[history[0]!])).toBe(210.96);
     expect(expectedAmount(r,"2026-04-10",[history[0]!])).toBe(218);
-    expect(expectedAmount(r,"2026-04-10",history)).toBe(218);
+    expect(expectedAmount(r,"2026-04-10",history)).toBe(220);
   });
   it("valida combinações e valores básicos de recurringInput",()=>{
     const base={kind:"expense",description:"Teste",category_id:"00000000-0000-4000-8000-000000000002",account_id:"00000000-0000-4000-8000-000000000003",amount:"10.00",due_day:10,start_date:"2026-01-01",end_date:null,installment_count:null,frequency:"monthly",custom_dates:[],active:true};
