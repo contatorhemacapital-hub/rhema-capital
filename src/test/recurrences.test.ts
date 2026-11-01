@@ -26,16 +26,30 @@ describe("ocorrências recorrentes",()=>{
     expect(run(makeRecurring(),links).find(x=>x.due==="2026-02-10")?.status).toBe("conciliada");
     expect(run(makeRecurring(),links.map(x=>({...x,status:"cancelled"}))).find(x=>x.due==="2026-02-10")?.status).toBe("pendente");
   });
-  it.fails("BUG primeira parcela: começa no próximo vencimento após start_date",()=>{
-    // BUG conhecido: será corrigido em etapa futura
+  it("BUG primeira parcela: começa no próximo vencimento após start_date",()=>{
     const r=makeRecurring({start_date:"2026-01-20",installment_count:1});
     expect(occurrences([r],[],[],"2026-01-01","2026-12-31","2026-01-01").map(x=>x.due)).toEqual(["2026-02-10"]);
   });
-  it.fails("BUG consórcio: conta parcelas a partir do primeiro vencimento",()=>{
-    // BUG conhecido: será corrigido em etapa futura
+  it("BUG consórcio: conta parcelas a partir do primeiro vencimento",()=>{
     const r=makeRecurring({start_date:"2026-01-20",installment_count:12});
     const dates=occurrences([r],[],[],"2026-01-01","2027-12-31","2026-01-01").map(x=>x.due);
     expect(dates).toHaveLength(12); expect(dates[0]).toBe("2026-02-10"); expect(dates.at(-1)).toBe("2027-01-10");
+  });
+  it("conta três parcelas desde o vencimento do mês de início",()=>{
+    const r=makeRecurring({start_date:"2026-01-05",due_day:10,installment_count:3});
+    expect(occurrences([r],[],[],"2026-01-01","2026-12-31","2026-03-15").map(x=>x.due)).toEqual(["2026-01-10","2026-02-10","2026-03-10"]);
+  });
+  it("inclui vencimento igual à data de início",()=>{
+    const r=makeRecurring({start_date:"2026-01-10",due_day:10,installment_count:2});
+    expect(occurrences([r],[],[],"2026-01-01","2026-12-31","2026-01-01").map(x=>x.due)).toEqual(["2026-01-10","2026-02-10"]);
+  });
+  it("limita vencimento do dia 31 ao fim de fevereiro",()=>{
+    const r=makeRecurring({start_date:"2026-01-31",due_day:31,installment_count:2});
+    expect(occurrences([r],[],[],"2026-01-01","2026-12-31","2026-01-01").map(x=>x.due)).toEqual(["2026-01-31","2026-02-28"]);
+  });
+  it("mantém a numeração das parcelas ao consultar uma janela posterior",()=>{
+    const r=makeRecurring({start_date:"2026-01-20",due_day:10,installment_count:3});
+    expect(occurrences([r],[],[],"2026-03-01","2026-12-31","2026-03-15").map(x=>x.due)).toEqual(["2026-03-10","2026-04-10"]);
   });
   it("usa o valor vigente e, no empate de data efetiva, o created_at mais recente",()=>{
     const r=makeRecurring(); const history:Adjustment[]=[
