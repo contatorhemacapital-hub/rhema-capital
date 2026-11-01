@@ -8,6 +8,7 @@ import {
   LogOut,
   Settings,
   Target,
+  Upload,
   Wallet,
   Layers,
 } from "lucide-react";
@@ -46,6 +47,7 @@ const NAV = [
   { to: "/patrimonio", label: "Patrimônio", icon: Building2 },
   { to: "/consorcios", label: "Consórcios", icon: Layers },
   { to: "/planejamento", label: "Planejamento", icon: Target },
+  { to: "/importacao", label: "Importação", icon: Upload },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
 
