@@ -10,7 +10,13 @@ export function normalize(s:string){return s.toLocaleLowerCase('pt-BR').trim().r
 export function readCsv(text:string,delimiter?:';'|','){const parsed=Papa.parse<string[]>(text.replace(/^\uFEFF/,''),{delimiter,skipEmptyLines:'greedy'});if(parsed.errors.length)throw new Error(`CSV inválido: ${parsed.errors[0]?.message}`);const [headers,...rows]=parsed.data;if(!headers||!rows.length)throw new Error('Arquivo vazio');if(rows.length>2000)throw new Error('Limite de 2000 linhas por arquivo');return {headers,rows,delimiter:parsed.meta.delimiter as ';'|','};}
 export function fingerprint(r:{date:string;amount:number|string;description:string;kind:string}){return `${r.date}|${toCents(r.amount)}|${r.kind}|${normalize(r.description)}`;}
 export function mapRows(rows:string[][],m:Mapping,rules:Rule[],categories:{id:string;kind:string;archived_at:string|null}[],existing:{date:string;amount:number|string;description:string;kind:string;external_ref:string|null}[]):ImportRow[]{
- const seen=new Set(existing.map(fingerprint));const refs=new Set(existing.map(t=>t.external_ref).filter(Boolean));
+ const existingCounts = new Map<string, number>();
+ for (const item of existing) {
+  const fp = fingerprint(item);
+  existingCounts.set(fp, (existingCounts.get(fp) ?? 0) + 1);
+ }
+ const duplicateCounts = new Map<string, number>();
+ const refs=new Set(existing.map(t=>t.external_ref).filter(Boolean));
  return rows.map(c=>{let error='';const raw=c[m.date]?.trim()??'';let date=raw;
  if(m.dateFormat==='br'){const match=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(raw);date=match?`${match[3]}-${match[2]}-${match[1]}`:'';}
  if(!validDate.safeParse(date).success)error='Data inválida';
@@ -22,7 +28,12 @@ export function mapRows(rows:string[][],m:Mapping,rules:Rule[],categories:{id:st
  if(!description||description.length>200)error='Descrição inválida';
  const externalRef=m.externalRef>=0?c[m.externalRef]?.trim()??'':'';
  const categoryId=[...rules].sort((a,b)=>b.term.length-a.term.length).find(r=>normalize(description).includes(normalize(r.term))&&categories.some(cat=>cat.id===r.category_id&&cat.kind===kind&&!cat.archived_at))?.category_id??'';
- const fp=fingerprint({date,description,amount,kind});const duplicate=seen.has(fp)||Boolean(externalRef&&refs.has(externalRef));seen.add(fp);if(externalRef)refs.add(externalRef);
+ const fp=fingerprint({date,description,amount,kind});
+ const duplicateCount=duplicateCounts.get(fp)??0;
+ const duplicateByFingerprint=duplicateCount<(existingCounts.get(fp)??0);
+ const duplicate=duplicateByFingerprint||Boolean(externalRef&&refs.has(externalRef));
+ if(duplicateByFingerprint)duplicateCounts.set(fp,duplicateCount+1);
+ if(externalRef)refs.add(externalRef);
  return {date,description,amount,kind,categoryId,destinationAccountId:'',externalRef,error,duplicate,include:!duplicate&&!error,recurringId:'',occurrenceDate:'',action:'reject'};
  });
 }

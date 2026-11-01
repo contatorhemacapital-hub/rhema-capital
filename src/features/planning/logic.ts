@@ -19,7 +19,25 @@ export function occurrences(items:Recurring[],history:Adjustment[],links:Link[],
  for(const r of items){if(!r.active)continue; let dates:string[]=[];
  if(r.frequency==='once')dates=[r.start_date];
  else if(r.frequency==='custom')dates=[...new Set(r.custom_dates)].sort().slice(0,r.installment_count??1200);
- else {const start=new Date(`${r.start_date.slice(0,7)}-01T00:00:00Z`);for(let i=0;i<(r.installment_count??1200);i++){const d=new Date(Date.UTC(start.getUTCFullYear(),start.getUTCMonth()+i,1));if(d.toISOString().slice(0,10)>to)break;const day=Math.min(r.due_day,new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate());dates.push(`${d.toISOString().slice(0,7)}-${String(day).padStart(2,'0')}`);}}
+ else {
+  const start = new Date(`${r.start_date.slice(0, 7)}-01T00:00:00Z`);
+  const firstDay = Math.min(
+    r.due_day,
+    new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)).getUTCDate(),
+  );
+  const firstDue = `${start.toISOString().slice(0, 7)}-${String(firstDay).padStart(2, '0')}`;
+  const firstMonth =
+    firstDue < r.start_date
+      ? new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1))
+      : start;
+  for (let i = 0; i < (r.installment_count ?? 1200); i++) {
+    const d = new Date(Date.UTC(firstMonth.getUTCFullYear(), firstMonth.getUTCMonth() + i, 1));
+    const day = Math.min(r.due_day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate());
+    const due = `${d.toISOString().slice(0, 7)}-${String(day).padStart(2, '0')}`;
+    if (due > to || (r.end_date && due > r.end_date)) break;
+    dates.push(due);
+  }
+}
  for(const due of dates){if(due<r.start_date||due<from||due>to||(r.end_date&&due>r.end_date))continue;
  const matched=links.some(l=>l.recurring_id===r.id&&l.occurrence_date===due&&l.status==='posted');
  out.push({key:`${r.id}:${due}`,recurringId:r.id,due,competence:`${due.slice(0,7)}-01`,amount:expectedAmount(r,due,history),description:r.description,kind:r.kind,accountId:r.account_id,categoryId:r.category_id,status:matched?'conciliada':due<today?(r.kind==='income'?'atrasada':'pendente'):'prevista'});
