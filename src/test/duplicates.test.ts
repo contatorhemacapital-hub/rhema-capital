@@ -23,6 +23,6 @@ describe("detecção de duplicidades",()=>{
   });
   it.fails("BUG A-01: só a primeira linha do arquivo coincide com existing",()=>{
     // BUG conhecido: será corrigido em etapa futura
-    expect(run([["01/02/2026","Mercado central","45,90",""],["01/02/2026","Mercado central","45,90",""]]).map(r=>r.duplicate)).toEqual([true,false]);
+    expect(run([["01/02/2026","Mercado central","-45,90",""],["01/02/2026","Mercado central","-45,90",""]]).map(r=>r.duplicate)).toEqual([true,false]);
   });
 });
