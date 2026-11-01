@@ -16,7 +16,7 @@ describe("detecção de duplicidades",()=>{
     expect(fingerprint(base)).not.toBe(fingerprint({...base,date:"2026-02-02"}));
   });
   it("marca external_ref existente e exclui a linha",()=>expect(run([["01/02/2026","Outro","1,00","ref-1"]])[0]).toMatchObject({duplicate:true,include:false}));
-  it("marca reimportação de conteúdo idêntico",()=>expect(run([["01/02/2026","Mercado central","45,90",""]])[0]?.duplicate).toBe(true));
+  it("marca reimportação de conteúdo idêntico",()=>expect(run([["01/02/2026","Mercado central","-45,90",""]])[0]?.duplicate).toBe(true));
   it.fails("BUG A-01: não deduplica duas ocorrências legítimas no mesmo arquivo",()=>{
     // BUG conhecido: será corrigido em etapa futura
     expect(run([["01/02/2026","Repetido","10,00",""],["01/02/2026","Repetido","10,00",""]],[]).map(r=>r.duplicate)).toEqual([false,false]);
