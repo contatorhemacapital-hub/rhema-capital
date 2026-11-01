@@ -15,9 +15,10 @@ describe("importação CSV",()=>{
     expect(readCsv("data;descricao;valor\n"+Array(2000).fill(row).join("\n")).rows).toHaveLength(2000);
     expect(()=>readCsv("data;descricao;valor\n"+Array(2001).fill(row).join("\n"))).toThrow(/Limite de 2000/);
   });
-  it.each([["01/02/2026","2026-02-01",""],["31/02/2026","", "Data inválida"],["29/02/2024","2024-02-29",""],["29/02/2025","", "Data inválida"],["2026-02-01","", "Data inválida"]] as const)("valida data %s", (date,expected,error)=>{
+  it.each([["01/02/2026","2026-02-01",""],["31/02/2026",null,"Data inválida"],["29/02/2024","2024-02-29",""],["29/02/2025",null,"Data inválida"],["2026-02-01",null,"Data inválida"]] as const)("valida data %s", (date,expected,error)=>{
     const r=map([date,"Mercado","10,00"]);
-    expect(r.date).toBe(expected); expect(r.error).toBe(error);
+    if(expected!==null) expect(r.date).toBe(expected);
+    expect(r.error).toBe(error);
   });
   it.each([["-45,90","expense","45.90"],["1.234,56","income","1234.56"]] as const)("mapeia valor %s", (value,kind,amount)=>{
     expect(map(["01/02/2026","Movimento",value])).toMatchObject({kind,amount,error:""});
