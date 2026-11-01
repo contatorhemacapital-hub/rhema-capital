@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Archive, ArchiveRestore, Pencil, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/states";
 import { categoriesQuery } from "@/features/finance/queries";
 import { CategoryDialog, useFinanceMutation } from "@/features/finance/components";
 import { setCategoryArchived, type Category } from "@/features/finance/finance.functions";
+import { loadDefaults } from "@/features/planning/planning.functions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — Rhema Capital" }] }),
@@ -20,10 +23,36 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
 function ConfigPage() {
   const { data: categories } = useSuspenseQuery(categoriesQuery());
   const [editing, setEditing] = useState<{ cat?: Category; kind: "income" | "expense" } | null>(null);
+  const loadDefaultsFn = useServerFn(loadDefaults);
+  const queryClient = useQueryClient();
+  const loadDefaultCategories = useMutation({
+    mutationFn: loadDefaultsFn,
+    onSuccess: async ({ created }) => {
+      await queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success(`Categorias padrão carregadas (${created})`);
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   return (
     <>
-      <PageHeader title="Configurações" description="Categorias e subcategorias de receitas e despesas." />
+      <PageHeader
+        title="Configurações"
+        description="Categorias e subcategorias de receitas e despesas."
+        actions={
+          <Button
+            variant="outline"
+            disabled={loadDefaultCategories.isPending}
+            onClick={() => {
+              if (window.confirm("Carregar as categorias padrão? As que já existem não serão duplicadas.")) {
+                loadDefaultCategories.mutate();
+              }
+            }}
+          >
+            Carregar categorias padrão
+          </Button>
+        }
+      />
       <div className="grid gap-6 lg:grid-cols-2">
         {(["expense", "income"] as const).map((kind) => (
           <CategoryColumn key={kind} kind={kind} categories={categories} onEdit={(cat) => setEditing({ cat, kind })} onNew={() => setEditing({ kind })} />
