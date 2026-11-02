@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   accountInput,
@@ -7,11 +8,11 @@ import {
   categoryInput,
   idInput,
   transactionInput,
-  txFilters,
+  transactionsInput,
 } from "./schemas";
 
-// All functions: identity verified by requireSupabaseAuth, queries run as the user
-// (RLS + is_owner() in the database), owner_id is always taken from the session.
+// Identity comes from requireSupabaseAuth; RLS controls access to each client's data.
+// owner_id records who created a row and is always taken from the session.
 
 function check(error: { message: string } | null) {
   if (error) throw new Error(error.message.replace(/^.*?ERROR:\s*/, ""));
@@ -36,10 +37,11 @@ export type Account = {
 
 export const listAccounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => z.object({ clientId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
     const [bal, acc] = await Promise.all([
-      context.supabase.from("account_balances").select("*").order("name"),
-      context.supabase.from("financial_accounts").select("id, institution"),
+      context.supabase.from("account_balances").select("*").eq("client_id", data.clientId).order("name"),
+      context.supabase.from("financial_accounts").select("id, institution").eq("client_id", data.clientId),
     ]);
     check(bal.error);
     check(acc.error);
@@ -63,10 +65,10 @@ export const saveAccount = createServerFn({ method: "POST" })
         .from("financial_accounts")
         .update(row)
         .eq("id", data.id)
-        .eq("owner_id", context.userId);
+        .eq("client_id", data.clientId);
       check(error);
     } else {
-      const { error } = await context.supabase.from("financial_accounts").insert({ ...row, owner_id: context.userId });
+      const { error } = await context.supabase.from("financial_accounts").insert({ ...row, owner_id: context.userId, client_id: data.clientId });
       check(error);
     }
     return { ok: true };
@@ -80,7 +82,7 @@ export const setAccountArchived = createServerFn({ method: "POST" })
       .from("financial_accounts")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
       .eq("id", data.id)
-      .eq("owner_id", context.userId);
+      .eq("client_id", data.clientId);
     check(error);
     return { ok: true };
   });
@@ -95,13 +97,15 @@ export type Category = {
 
 export const listCategories = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((d: unknown) => z.object({ clientId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase
       .from("categories")
       .select("id, name, kind, parent_id, archived_at")
+      .eq("client_id", data.clientId)
       .order("name");
     check(error);
-    return (data ?? []) as Category[];
+    return (rows ?? []) as Category[];
   });
 
 export const saveCategory = createServerFn({ method: "POST" })
@@ -110,8 +114,8 @@ export const saveCategory = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const row = { name: data.name, kind: data.kind, parent_id: data.parentId ?? null };
     const q = data.id
-      ? context.supabase.from("categories").update(row).eq("id", data.id).eq("owner_id", context.userId)
-      : context.supabase.from("categories").insert({ ...row, owner_id: context.userId });
+      ? context.supabase.from("categories").update(row).eq("id", data.id).eq("client_id", data.clientId)
+      : context.supabase.from("categories").insert({ ...row, owner_id: context.userId, client_id: data.clientId });
     const { error } = await q;
     check(error);
     return { ok: true };
@@ -125,7 +129,7 @@ export const setCategoryArchived = createServerFn({ method: "POST" })
       .from("categories")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
       .eq("id", data.id)
-      .eq("owner_id", context.userId);
+      .eq("client_id", data.clientId);
     check(error);
     return { ok: true };
   });
@@ -147,7 +151,7 @@ export type Transaction = {
 
 export const listTransactions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => txFilters.parse(d ?? {}))
+  .inputValidator((d: unknown) => transactionsInput.parse(d ?? {}))
   .handler(async ({ data, context }) => {
     let q = context.supabase
       .from("transactions")
@@ -156,14 +160,19 @@ export const listTransactions = createServerFn({ method: "GET" })
       )
       .order("date", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(1000);
+      .limit(1000)
+      .eq("client_id", data.clientId);
     if (data.from) q = q.gte("date", data.from);
     if (data.to) q = q.lte("date", data.to);
     if (data.kind) q = q.eq("kind", data.kind);
     if (data.status) q = q.eq("status", data.status);
     if (data.accountId) q = q.or(`account_id.eq.${data.accountId},destination_account_id.eq.${data.accountId}`);
     if (data.categoryId) {
-      const { data: kids, error } = await context.supabase.from("categories").select("id").eq("parent_id", data.categoryId);
+      const { data: kids, error } = await context.supabase
+        .from("categories")
+        .select("id")
+        .eq("client_id", data.clientId)
+        .eq("parent_id", data.categoryId);
       check(error);
       q = q.in("category_id", [data.categoryId, ...(kids ?? []).map((k) => k.id)]);
     }
@@ -192,13 +201,13 @@ export const saveTransaction = createServerFn({ method: "POST" })
         .from("transactions")
         .update(row)
         .eq("id", data.id)
-        .eq("owner_id", context.userId)
+        .eq("client_id", data.clientId)
         .eq("kind", data.kind);
       check(error);
     } else {
       const { error } = await context.supabase
         .from("transactions")
-        .insert({ ...row, kind: data.kind, owner_id: context.userId });
+        .insert({ ...row, kind: data.kind, owner_id: context.userId, client_id: data.clientId });
       check(error);
     }
     return { ok: true };
@@ -212,7 +221,7 @@ export const cancelTransaction = createServerFn({ method: "POST" })
       .from("transactions")
       .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_reason: data.reason })
       .eq("id", data.id)
-      .eq("owner_id", context.userId)
+      .eq("client_id", data.clientId)
       .neq("status", "cancelled")
       .select("id");
     check(error);
@@ -228,7 +237,7 @@ export const settleTransaction = createServerFn({ method: "POST" })
       .from("transactions")
       .update({ status: "posted" })
       .eq("id", data.id)
-      .eq("owner_id", context.userId)
+      .eq("client_id", data.clientId)
       .eq("status", "pending")
       .select("id");
     check(error);
