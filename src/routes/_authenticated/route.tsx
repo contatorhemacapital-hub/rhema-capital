@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, redirect, useLocation, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
   Building2,
@@ -9,6 +9,7 @@ import {
   Settings,
   Target,
   Upload,
+  Users,
   Wallet,
   Layers,
 } from "lucide-react";
@@ -28,6 +29,9 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClientProvider, useClient } from "@/features/clients/client-context";
+import { meQuery } from "@/features/clients/queries";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -42,6 +46,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/clientes", label: "Clientes", icon: Users, adminOnly: true },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/contas", label: "Contas", icon: Wallet },
   { to: "/patrimonio", label: "Patrimônio", icon: Building2 },
@@ -64,24 +69,41 @@ function useSignOut() {
 
 function Layout() {
   const { isOwner, user } = Route.useRouteContext();
+
+  if (!isOwner) return <RestrictedAccess email={user.email} />;
+  return <AuthorizedLayout email={user.email ?? ""} />;
+}
+
+function RestrictedAccess({ email }: { email: string | undefined }) {
+  const signOut = useSignOut();
+  return (
+    <main className="flex min-h-screen items-center justify-center px-6">
+      <div className="card-surface max-w-md p-8 text-center" role="alert">
+        <h1 className="text-2xl font-semibold">Acesso restrito</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Este sistema é de uso exclusivo do proprietário. A conta {email} não tem acesso.
+        </p>
+        <Button className="mt-6" variant="outline" onClick={signOut}>
+          Sair
+        </Button>
+      </div>
+    </main>
+  );
+}
+
+function AuthorizedLayout({ email }: { email: string }) {
+  const { data: me } = useSuspenseQuery(meQuery());
+  return (
+    <ClientProvider me={me}>
+      <LayoutShell email={email} />
+    </ClientProvider>
+  );
+}
+
+function LayoutShell({ email }: { email: string }) {
   const signOut = useSignOut();
   const { pathname } = useLocation();
-
-  if (!isOwner) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-6">
-        <div className="card-surface max-w-md p-8 text-center" role="alert">
-          <h1 className="text-2xl font-semibold">Acesso restrito</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Este sistema é de uso exclusivo do proprietário. A conta {user.email} não tem acesso.
-          </p>
-          <Button className="mt-6" variant="outline" onClick={signOut}>
-            Sair
-          </Button>
-        </div>
-      </main>
-    );
-  }
+  const { clientId, setClientId, clients, isAdmin } = useClient();
 
   return (
     <SidebarProvider>
@@ -98,7 +120,7 @@ function Layout() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu aria-label="Navegação principal">
-                {NAV.map((item) => {
+                {NAV.filter((item) => !("adminOnly" in item) || isAdmin).map((item) => {
                   const active = pathname.startsWith(item.to);
                   return (
                     <SidebarMenuItem key={item.to}>
@@ -134,7 +156,19 @@ function Layout() {
       <SidebarInset className="bg-background">
         <div className="flex h-14 items-center gap-2 border-b px-4">
           <SidebarTrigger aria-label="Abrir ou recolher menu" />
-          <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+          <span className="truncate text-xs text-muted-foreground">{email}</span>
+          <Select value={clientId ?? ""} onValueChange={setClientId}>
+            <SelectTrigger className="ml-auto w-56" aria-label="Cliente ativo">
+              <SelectValue placeholder="Selecione um cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.name}{client.status === "inactive" ? " (inativo)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8">
           <Outlet />
