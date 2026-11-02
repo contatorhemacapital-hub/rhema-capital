@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, NativeSelect } from "@/components/states";
 import { cn } from "@/lib/utils";
+import { useClient } from "@/features/clients/client-context";
 import {
   cancelTransaction,
   saveAccount,
@@ -91,6 +92,7 @@ function FormDialog({
 const toInput = (n: number) => n.toFixed(2).replace(".", ",");
 
 export function AccountDialog({ open, onOpenChange, account }: { open: boolean; onOpenChange: (o: boolean) => void; account?: Account }) {
+  const { clientId } = useClient();
   const [name, setName] = useState(account?.name ?? "");
   const [institution, setInstitution] = useState(account?.institution ?? "");
   const [type, setType] = useState(account?.type ?? "checking");
@@ -105,6 +107,7 @@ export function AccountDialog({ open, onOpenChange, account }: { open: boolean; 
     e.preventDefault();
     const parsed = accountInput.safeParse({
       id: account?.account_id,
+      clientId: clientId ?? "",
       name,
       institution,
       type,
@@ -165,6 +168,7 @@ export function CategoryDialog({
   categories: Category[];
   defaultKind?: "income" | "expense";
 }) {
+  const { clientId } = useClient();
   const [name, setName] = useState(category?.name ?? "");
   const [kind, setKind] = useState<"income" | "expense">(category?.kind ?? defaultKind);
   const [parentId, setParentId] = useState(category?.parent_id ?? "");
@@ -174,7 +178,7 @@ export function CategoryDialog({
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    const parsed = categoryInput.safeParse({ id: category?.id, name, kind, parentId: parentId || null });
+    const parsed = categoryInput.safeParse({ id: category?.id, clientId: clientId ?? "", name, kind, parentId: parentId || null });
     if (!parsed.success) return setErrors(zodErrors(parsed.error.issues));
     setErrors({});
     m.mutate(parsed.data);
@@ -250,6 +254,7 @@ export function TransactionDialog({
   categories: Category[];
   initialKind?: Transaction["kind"];
 }) {
+  const { clientId } = useClient();
   const active = accounts.filter((a) => !a.archived_at || a.account_id === tx?.account_id || a.account_id === tx?.destination_account_id);
   const [kind, setKind] = useState<Transaction["kind"]>(tx?.kind ?? initialKind);
   const [status, setStatus] = useState<"pending" | "posted">(tx?.status === "pending" ? "pending" : "posted");
@@ -273,6 +278,7 @@ export function TransactionDialog({
     e.preventDefault();
     const parsed = transactionInput.safeParse({
       id: tx?.id,
+      clientId: clientId ?? "",
       kind,
       status,
       accountId,
@@ -376,8 +382,9 @@ export function TransactionDialog({
 }
 
 export function CancelDialog({ tx, onOpenChange }: { tx: Transaction | null; onOpenChange: (o: boolean) => void }) {
+  const { clientId } = useClient();
   const [reason, setReason] = useState("");
-  const m = useFinanceMutation((d: { id: string; reason: string }) => cancelTransaction({ data: d }), "Lançamento cancelado", () => {
+  const m = useFinanceMutation((d: { id: string; clientId: string; reason: string }) => cancelTransaction({ data: d }), "Lançamento cancelado", () => {
     setReason("");
     onOpenChange(false);
   });
@@ -392,7 +399,7 @@ export function CancelDialog({ tx, onOpenChange }: { tx: Transaction | null; onO
       onSubmit={(e) => {
         e.preventDefault();
         if (!reason.trim()) return toast.error("Informe o motivo");
-        if (tx) m.mutate({ id: tx.id, reason });
+        if (tx && clientId) m.mutate({ id: tx.id, clientId, reason });
       }}
     >
       {tx && (

@@ -12,6 +12,7 @@ import { settleTransaction, type Transaction } from "@/features/finance/finance.
 import { KIND_LABEL, STATUS_LABEL, txFilters, type TxFilters } from "@/features/finance/schemas";
 import { formatDate, formatMoney, fromCents, summarize } from "@/features/finance/money";
 import { cn } from "@/lib/utils";
+import { useClient } from "@/features/clients/client-context";
 
 function monthRange() {
   const d = new Date();
@@ -30,28 +31,27 @@ export const Route = createFileRoute("/_authenticated/movimentacoes")({
     const base = r.success ? r.data : {};
     return Object.keys(clean).length === 0 ? monthRange() : base;
   },
-  loaderDeps: ({ search }) => search,
-  loader: ({ context, deps }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(accountsQuery()),
-      context.queryClient.ensureQueryData(categoriesQuery()),
-      context.queryClient.ensureQueryData(transactionsQuery(deps)),
-    ]),
   pendingComponent: LoadingState,
   errorComponent: ({ error }) => <ErrorState error={error} />,
   component: MovPage,
 });
 
 function MovPage() {
+  const { clientId } = useClient();
+  if (!clientId) return <EmptyState title="Selecione um cliente" />;
+  return <MovementsForClient clientId={clientId} />;
+}
+
+function MovementsForClient({ clientId }: { clientId: string }) {
   const filters = Route.useSearch();
   const navigate = useNavigate({ from: "/movimentacoes" });
-  const { data: accounts } = useSuspenseQuery(accountsQuery());
-  const { data: categories } = useSuspenseQuery(categoriesQuery());
-  const { data: txs } = useSuspenseQuery(transactionsQuery(filters));
+  const { data: accounts } = useSuspenseQuery(accountsQuery(clientId));
+  const { data: categories } = useSuspenseQuery(categoriesQuery(clientId));
+  const { data: txs } = useSuspenseQuery(transactionsQuery(clientId, filters));
   const [editing, setEditing] = useState<Transaction | "new" | null>(null);
   const [cancelling, setCancelling] = useState<Transaction | null>(null);
   const [q, setQ] = useState(filters.q ?? "");
-  const settle = useFinanceMutation((id: string) => settleTransaction({ data: { id } }), "Lançamento efetivado");
+  const settle = useFinanceMutation((id: string) => settleTransaction({ data: { id, clientId } }), "Lançamento efetivado");
 
   useEffect(() => {
     const t = setTimeout(() => {
