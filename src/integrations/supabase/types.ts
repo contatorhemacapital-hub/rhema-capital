@@ -35,6 +35,7 @@ export type Database = {
       categories: {
         Row: {
           archived_at: string | null
+          client_id: string
           created_at: string
           id: string
           kind: string
@@ -45,6 +46,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          client_id?: string
           created_at?: string
           id?: string
           kind: string
@@ -55,6 +57,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          client_id?: string
           created_at?: string
           id?: string
           kind?: string
@@ -76,6 +79,7 @@ export type Database = {
       categorization_rules: {
         Row: {
           category_id: string
+          client_id: string
           created_at: string
           id: string
           owner_id: string
@@ -83,6 +87,7 @@ export type Database = {
         }
         Insert: {
           category_id: string
+          client_id?: string
           created_at?: string
           id?: string
           owner_id?: string
@@ -90,6 +95,7 @@ export type Database = {
         }
         Update: {
           category_id?: string
+          client_id?: string
           created_at?: string
           id?: string
           owner_id?: string
@@ -105,21 +111,84 @@ export type Database = {
           },
         ]
       }
+      client_access: {
+        Row: {
+          access_level: string
+          client_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          access_level: string
+          client_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          access_level?: string
+          client_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cpf: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cpf?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cpf?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       csv_mappings: {
         Row: {
           account_id: string
+          client_id: string
           mapping: Json
           owner_id: string
           updated_at: string
         }
         Insert: {
           account_id: string
+          client_id?: string
           mapping: Json
           owner_id?: string
           updated_at?: string
         }
         Update: {
           account_id?: string
+          client_id?: string
           mapping?: Json
           owner_id?: string
           updated_at?: string
@@ -144,6 +213,7 @@ export type Database = {
       financial_accounts: {
         Row: {
           archived_at: string | null
+          client_id: string
           created_at: string
           currency: string
           id: string
@@ -157,6 +227,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          client_id?: string
           created_at?: string
           currency?: string
           id?: string
@@ -170,6 +241,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          client_id?: string
           created_at?: string
           currency?: string
           id?: string
@@ -186,6 +258,7 @@ export type Database = {
       import_batches: {
         Row: {
           account_id: string | null
+          client_id: string
           created_at: string
           file_name: string | null
           id: string
@@ -197,6 +270,7 @@ export type Database = {
         }
         Insert: {
           account_id?: string | null
+          client_id?: string
           created_at?: string
           file_name?: string | null
           id?: string
@@ -208,6 +282,7 @@ export type Database = {
         }
         Update: {
           account_id?: string | null
+          client_id?: string
           created_at?: string
           file_name?: string | null
           id?: string
@@ -236,6 +311,7 @@ export type Database = {
       }
       recurring_adjustments: {
         Row: {
+          client_id: string
           created_at: string
           effective_from: string
           id: string
@@ -245,6 +321,7 @@ export type Database = {
           recurring_id: string
         }
         Insert: {
+          client_id?: string
           created_at?: string
           effective_from: string
           id?: string
@@ -254,6 +331,7 @@ export type Database = {
           recurring_id: string
         }
         Update: {
+          client_id?: string
           created_at?: string
           effective_from?: string
           id?: string
@@ -278,6 +356,7 @@ export type Database = {
           active: boolean
           amount: number
           category_id: string
+          client_id: string
           created_at: string
           custom_dates: string[]
           description: string
@@ -296,6 +375,7 @@ export type Database = {
           active?: boolean
           amount: number
           category_id: string
+          client_id?: string
           created_at?: string
           custom_dates?: string[]
           description: string
@@ -314,6 +394,7 @@ export type Database = {
           active?: boolean
           amount?: number
           category_id?: string
+          client_id?: string
           created_at?: string
           custom_dates?: string[]
           description?: string
@@ -358,6 +439,7 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           category_id: string | null
+          client_id: string
           competence: string | null
           created_at: string
           date: string
@@ -380,6 +462,7 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           category_id?: string | null
+          client_id?: string
           competence?: string | null
           created_at?: string
           date: string
@@ -402,6 +485,7 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           category_id?: string | null
+          client_id?: string
           competence?: string | null
           created_at?: string
           date?: string
@@ -470,6 +554,24 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       account_balances: {
@@ -477,6 +579,7 @@ export type Database = {
           account_id: string | null
           archived_at: string | null
           balance: number | null
+          client_id: string | null
           currency: string | null
           expense_posted: number | null
           income_posted: number | null
@@ -493,6 +596,8 @@ export type Database = {
       }
     }
     Functions: {
+      can_read_client: { Args: { p_client: string }; Returns: boolean }
+      can_write_client: { Args: { p_client: string }; Returns: boolean }
       claim_ownership: { Args: never; Returns: boolean }
       commit_csv_import: {
         Args: {
@@ -503,8 +608,12 @@ export type Database = {
         }
         Returns: Json
       }
+      is_admin: { Args: never; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
-      load_default_categories: { Args: { p_groups: Json }; Returns: number }
+      load_default_categories: {
+        Args: { p_client: string; p_groups: Json } | { p_groups: Json }
+        Returns: number
+      }
       phase2_due_dates: {
         Args: {
           date_from: string
