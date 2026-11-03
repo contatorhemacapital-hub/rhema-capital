@@ -10,17 +10,23 @@ import { AccountDialog, useFinanceMutation } from "@/features/finance/components
 import { setAccountArchived, type Account } from "@/features/finance/finance.functions";
 import { ACCOUNT_TYPES } from "@/features/finance/schemas";
 import { formatDate, formatMoney, fromCents, toCents } from "@/features/finance/money";
+import { useClient } from "@/features/clients/client-context";
 
 export const Route = createFileRoute("/_authenticated/contas")({
   head: () => ({ meta: [{ title: "Contas — Rhema Capital" }] }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(accountsQuery()),
   pendingComponent: LoadingState,
   errorComponent: ({ error }) => <ErrorState error={error} />,
   component: ContasPage,
 });
 
 function ContasPage() {
-  const { data: accounts } = useSuspenseQuery(accountsQuery());
+  const { clientId } = useClient();
+  if (!clientId) return <EmptyState title="Selecione um cliente" />;
+  return <ContasForClient clientId={clientId} />;
+}
+
+function ContasForClient({ clientId }: { clientId: string }) {
+  const { data: accounts } = useSuspenseQuery(accountsQuery(clientId));
   const [editing, setEditing] = useState<Account | "new" | null>(null);
   const active = accounts.filter((a) => !a.archived_at);
   const archived = accounts.filter((a) => a.archived_at);
@@ -75,7 +81,8 @@ function ContasPage() {
 }
 
 function AccountList({ accounts, onEdit }: { accounts: Account[]; onEdit: (a: Account) => void }) {
-  const archive = useFinanceMutation((d: { id: string; archived: boolean }) => setAccountArchived({ data: d }), "Conta atualizada");
+  const { clientId } = useClient();
+  const archive = useFinanceMutation((d: { id: string; archived: boolean }) => setAccountArchived({ data: { ...d, clientId: clientId ?? "" } }), "Conta atualizada");
   return (
     <ul className="grid gap-4 md:grid-cols-2">
       {accounts.map((a) => (

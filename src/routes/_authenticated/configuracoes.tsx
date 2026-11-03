@@ -11,22 +11,28 @@ import { categoriesQuery } from "@/features/finance/queries";
 import { CategoryDialog, useFinanceMutation } from "@/features/finance/components";
 import { setCategoryArchived, type Category } from "@/features/finance/finance.functions";
 import { loadDefaults } from "@/features/planning/planning.functions";
+import { useClient } from "@/features/clients/client-context";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — Rhema Capital" }] }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(categoriesQuery()),
   pendingComponent: LoadingState,
   errorComponent: ({ error }) => <ErrorState error={error} />,
   component: ConfigPage,
 });
 
 function ConfigPage() {
-  const { data: categories } = useSuspenseQuery(categoriesQuery());
+  const { clientId } = useClient();
+  if (!clientId) return <EmptyState title="Selecione um cliente" />;
+  return <ConfigForClient clientId={clientId} />;
+}
+
+function ConfigForClient({ clientId }: { clientId: string }) {
+  const { data: categories } = useSuspenseQuery(categoriesQuery(clientId));
   const [editing, setEditing] = useState<{ cat?: Category; kind: "income" | "expense" } | null>(null);
   const loadDefaultsFn = useServerFn(loadDefaults);
   const queryClient = useQueryClient();
   const loadDefaultCategories = useMutation({
-    mutationFn: loadDefaultsFn,
+    mutationFn: () => loadDefaultsFn({ data: { clientId } }),
     onSuccess: async ({ created }) => {
       await queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success(`Categorias padrão carregadas (${created})`);
@@ -55,7 +61,7 @@ function ConfigPage() {
       />
       <div className="grid gap-6 lg:grid-cols-2">
         {(["expense", "income"] as const).map((kind) => (
-          <CategoryColumn key={kind} kind={kind} categories={categories} onEdit={(cat) => setEditing({ cat, kind })} onNew={() => setEditing({ kind })} />
+          <CategoryColumn key={kind} clientId={clientId} kind={kind} categories={categories} onEdit={(cat) => setEditing({ cat, kind })} onNew={() => setEditing({ kind })} />
         ))}
       </div>
       {editing && (
@@ -73,17 +79,19 @@ function ConfigPage() {
 }
 
 function CategoryColumn({
+  clientId,
   kind,
   categories,
   onEdit,
   onNew,
 }: {
+  clientId: string;
   kind: "income" | "expense";
   categories: Category[];
   onEdit: (c: Category) => void;
   onNew: () => void;
 }) {
-  const archive = useFinanceMutation((d: { id: string; archived: boolean }) => setCategoryArchived({ data: d }), "Categoria atualizada");
+  const archive = useFinanceMutation((d: { id: string; archived: boolean }) => setCategoryArchived({ data: { ...d, clientId } }), "Categoria atualizada");
   const roots = categories.filter((c) => c.kind === kind && !c.parent_id);
   const title = kind === "income" ? "Receitas" : "Despesas";
 

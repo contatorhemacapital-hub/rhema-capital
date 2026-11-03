@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, LoadingState, PageHeader, StatCard } from "@/components/states";
 import { accountsQuery, transactionsQuery } from "@/features/finance/queries";
 import { formatDate, formatMoney, fromCents, summarize, toCents } from "@/features/finance/money";
+import { useClient } from "@/features/clients/client-context";
 
 function month() {
   const d = new Date();
@@ -14,19 +15,20 @@ function month() {
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Rhema Capital" }] }),
-  loader: ({ context }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(accountsQuery()),
-      context.queryClient.ensureQueryData(transactionsQuery(month())),
-    ]),
   pendingComponent: LoadingState,
   errorComponent: ({ error }) => <ErrorState error={error} />,
   component: Dashboard,
 });
 
 function Dashboard() {
-  const { data: accounts } = useSuspenseQuery(accountsQuery());
-  const { data: txs } = useSuspenseQuery(transactionsQuery(month()));
+  const { clientId } = useClient();
+  if (!clientId) return <EmptyState title="Selecione um cliente" />;
+  return <DashboardForClient clientId={clientId} />;
+}
+
+function DashboardForClient({ clientId }: { clientId: string }) {
+  const { data: accounts } = useSuspenseQuery(accountsQuery(clientId));
+  const { data: txs } = useSuspenseQuery(transactionsQuery(clientId, month()));
   const active = accounts.filter((a) => !a.archived_at);
   const total = active.reduce((s, a) => s + toCents(a.balance), 0);
   const sum = summarize(txs);

@@ -21,6 +21,7 @@ const money = z.string().regex(/^-?\d{1,16}(\.\d{1,2})?$/, "Valor inválido");
 const positiveMoney = money.refine((s) => Number(s) > 0, "O valor deve ser maior que zero");
 
 export const accountInput = z.object({
+  clientId: uuid,
   id: uuid.optional(),
   name: z.string().trim().min(1, "Informe o nome").max(80),
   institution: z.string().trim().max(80).optional().nullable(),
@@ -31,6 +32,7 @@ export const accountInput = z.object({
 export type AccountInput = z.infer<typeof accountInput>;
 
 export const categoryInput = z.object({
+  clientId: uuid,
   id: uuid.optional(),
   name: z.string().trim().min(1, "Informe o nome").max(60),
   kind: z.enum(["income", "expense"]),
@@ -40,6 +42,7 @@ export type CategoryInput = z.infer<typeof categoryInput>;
 
 export const transactionInput = z
   .object({
+    clientId: uuid,
     id: uuid.optional(),
     kind: z.enum(["income", "expense", "transfer"]),
     status: z.enum(["pending", "posted"]),
@@ -76,7 +79,8 @@ export const txFilters = z.object({
   q: z.string().trim().max(100).optional(),
 });
 export type TxFilters = z.infer<typeof txFilters>;
+export const transactionsInput = txFilters.extend({ clientId: uuid });
 
-export const idInput = z.object({ id: uuid });
-export const cancelInput = z.object({ id: uuid, reason: z.string().trim().min(1, "Informe o motivo").max(200) });
-export const archiveInput = z.object({ id: uuid, archived: z.boolean() });
+export const idInput = z.object({ id: uuid, clientId: uuid });
+export const cancelInput = z.object({ id: uuid, clientId: uuid, reason: z.string().trim().min(1, "Informe o motivo").max(200) });
+export const archiveInput = z.object({ id: uuid, clientId: uuid, archived: z.boolean() });
