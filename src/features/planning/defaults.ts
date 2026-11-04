@@ -6,4 +6,6 @@ export const DEFAULT_CATEGORIES = [
  {name:'Gastos Pessoais',kind:'expense',children:['Previdência Privada','Faculdade/Escola','Cursos Diversos','Livros','Cosméticos','Cabeleireiro','Vestuário','Lavanderia','Academia','Telefone Celular','Outros']},
  {name:'Lazer e Entretenimento',kind:'expense',children:['Restaurantes','Bar','Cultura','Passagens','Hotéis','Passeios','Outros']},
  {name:'Dependentes',kind:'expense',children:['Estudos','Cursos','Esportes','Material escolar','Uniformes','Mesada','Férias','Vestuário','Outros']},
+ {name:'Movimentações internas (saídas)',kind:'expense',children:['Aplicação em investimentos','Pagamento de fatura de cartão','Transferência entre contas próprias']},
+ {name:'Movimentações internas (entradas)',kind:'income',children:['Resgate de investimentos','Transferência entre contas próprias']},
 ] as const;
