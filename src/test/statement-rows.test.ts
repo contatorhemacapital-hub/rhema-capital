@@ -16,6 +16,9 @@ const cats = {
   card: cat("Pagamento de fatura de cartão", "expense"),
   phoneArchived: cat("Telefone Celular", "expense", true),
   custom: cat("Mercado do bairro", "expense"),
+  fuel: cat("Combustível", "expense"),
+  consorcio: cat("Prestação Consórcio", "expense"),
+  farmacia: cat("Farmácia", "expense"),
 };
 const list = Object.values(cats);
 const row = (p: Partial<StatementRow>): StatementRow => ({ date: "2026-02-01", description: "Compra no debito: X", amount: "10.00", kind: "expense", opType: "debit_purchase", selfTransfer: false, ...p });
@@ -30,6 +33,12 @@ describe("sugestão de categoria para linhas do extrato", () => {
     expect(suggestCategoryId(row({ description: "Compra Meio De Transporte: BRB MOBILIDA*BUS 5033 BRASILIA BRA", opType: "transit" }), [], list)).toBe(cats.bus.id);
     expect(suggestCategoryId(row({ description: "Compra no debito: COSTA ATACADAO" }), [], list)).toBe(cats.food.id);
     expect(suggestCategoryId(row({ description: "Pix enviado: IFOODCOM AGENCIA DE RESTAURANTES ONLINE SA", opType: "pix_sent" }), [], list)).toBe(cats.restaurantes.id);
+  });
+  it("reconhece comerciantes do C6: supermercado, posto, farmácia e consórcio", () => {
+    expect(suggestCategoryId(row({ description: "Débito de cartão: SUPERBOM SUPERMERCADO BRASILIA BRA", opType: "debit_purchase" }), [], list)).toBe(cats.food.id);
+    expect(suggestCategoryId(row({ description: "Débito de cartão: AUTO POSTO FENIX ODJ L BRASILIA BRA", opType: "debit_purchase" }), [], list)).toBe(cats.fuel.id);
+    expect(suggestCategoryId(row({ description: "Débito de cartão: RAIA DROGASIL SA BRASILIA BRA", opType: "debit_purchase" }), [], list)).toBe(cats.farmacia.id);
+    expect(suggestCategoryId(row({ description: "Pix enviado: SERVOPA ADMINISTRADORA DE CONSORCIOS LTDA", opType: "pix_sent" }), [], list)).toBe(cats.consorcio.id);
   });
   it("só sugere para despesas e respeita palavra inteira", () => {
     expect(suggestCategoryId(row({ description: "Pix recebido: UBER DO BRASIL", kind: "income", opType: "pix_received" }), [], list)).toBe("");
