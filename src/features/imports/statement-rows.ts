@@ -14,17 +14,15 @@ export type StatementRow = {
 };
 
 export type PdfStatementResult = {
+  bank: "inter" | "c6";
   rows: StatementRow[];
   periodStart: string | null;
   periodEnd: string | null;
+  openingBalanceCents: number | null;
+  openingDate: string | null;
   integrityOk: boolean;
-  checks: {
-    balanceMismatches: number;
-    dayMismatches: number;
-    orphanRecords: number;
-    headerBalanceMatches: boolean | null;
-  };
-  warnings: string[];
+  problems: string[];
+  headerBalanceMatches: boolean | null;
 };
 
 type Cat = { id: string; name?: string; kind: string; archived_at: string | null };
@@ -45,11 +43,12 @@ export const KEYWORD_SUGGESTIONS: { terms: string[]; category: string }[] = [
   { terms: ["neoenergia"], category: "Luz" },
   { terms: ["claro"], category: "Telefone Celular" },
   { terms: ["tecplay"], category: "Internet de casa" },
-  { terms: ["consorcio"], category: "Prestação Consórcio" },
-  { terms: ["drogaria", "farmacia"], category: "Farmácia" },
-  { terms: ["ifood", "restaurante", "pizzaria", "churrascaria", "pastelaria", "burger", "acai"], category: "Restaurantes" },
+  { terms: ["drogaria", "farmacia", "drogasil", "droga big"], category: "Farmácia" },
+  { terms: ["servopa", "consorcio"], category: "Prestação Consórcio" },
+  { terms: ["auto posto"], category: "Combustível" },
+  { terms: ["ifood", "restaurante", "pizzaria", "churrascaria", "pastelaria", "burger", "acai", "dunkin", "doceria", "salgados"], category: "Restaurantes" },
   {
-    terms: ["atacadao", "atacadista", "acougue", "mercearia", "hortifruti", "mini mart", "sacolao", "carnes", "panificadora", "padaria"],
+    terms: ["atacadao", "atacadista", "acougue", "mercearia", "hortifruti", "mini mart", "sacolao", "carnes", "panificadora", "padaria", "supermercado"],
     category: "Alimentação (supermercado, feira, padaria)",
   },
 ];
