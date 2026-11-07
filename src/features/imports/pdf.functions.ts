@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { parseInterStatement } from "./pdf-inter";
+import { parseBankStatement, statementIntegrityOk } from "./pdf-parsers";
 import type { PdfStatementResult } from "./statement-rows";
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
@@ -34,28 +34,17 @@ export const parseStatementPdf = createServerFn({ method: "POST" })
     }
     if (pages.join("").trim().length < 50) throw new Error("O PDF não tem texto legível (parece uma imagem escaneada)");
 
-    const st = parseInterStatement(pages);
+    const st = parseBankStatement(pages);
     if (!st.rows.length) throw new Error("Nenhum lançamento encontrado no extrato");
-    const integrityOk =
-      st.balanceMismatches.length === 0 && st.dayMismatches.length === 0 && st.orphanRecords === 0 && st.warnings.length === 0 && st.headerBalanceMatches !== false;
     return {
-      rows: st.rows.map((r) => ({
-        date: r.date,
-        description: r.description,
-        amount: r.amount,
-        kind: r.kind,
-        opType: r.opType,
-        selfTransfer: r.selfTransfer,
-      })),
+      bank: st.bank,
+      rows: st.rows,
       periodStart: st.periodStart,
       periodEnd: st.periodEnd,
-      integrityOk,
-      checks: {
-        balanceMismatches: st.balanceMismatches.length,
-        dayMismatches: st.dayMismatches.length,
-        orphanRecords: st.orphanRecords,
-        headerBalanceMatches: st.headerBalanceMatches,
-      },
-      warnings: st.warnings.slice(0, 10),
+      openingBalanceCents: st.openingBalanceCents,
+      openingDate: st.openingDate,
+      integrityOk: statementIntegrityOk(st),
+      problems: st.problems.slice(0, 10),
+      headerBalanceMatches: st.headerBalanceMatches,
     };
   });
